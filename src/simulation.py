@@ -2,6 +2,7 @@
 
 import itertools
 import math
+import multiprocessing as mp
 import operator
 
 from simulations.base import listener
@@ -101,7 +102,15 @@ def output_dir_handler(this):
 
 
 def pool_started_handler(this, pool):
-    print "[Pool Started] {0} parallel computations".format(pool.get_ncpus())
+    try:
+        pool_size = pool._processes
+    except AttributeError:
+        if this.options.pool_size is None:
+            pool_size = mp.cpu_count()
+        else:
+            pool_size = this.options.pool_size
+
+    print "[Pool Started] {0} parallel computations".format(pool_size)
 
 
 def start_handler(this):
