@@ -304,10 +304,3 @@ class SingleSignallingGame(simulations.dynamics.npop_discrete_replicator.NPopDis
             )
 
         return self.interaction_cache[profile][index]
-
-if __name__ == '__main__':
-    runner = Runner(SingleSignallingGame,
-                                pp_deps=(SingleSignallingGame,))
-    print "Yaba daba doo..."
-
-    runner.go()
