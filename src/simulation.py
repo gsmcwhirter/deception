@@ -6,7 +6,7 @@ import operator
 
 from simulations.base import listener
 from simulations.simulation_runner import SimulationRunner
-import simulations.dynamics.npop_discrete_replicator
+from simulations.dynamics.npop_discrete_replicator import NPopDiscreteReplicatorDynamics as NPDRD
 
 
 receiver_sim_2 = ((2., 1., 1., 0.),
@@ -253,8 +253,7 @@ def receiver_matrix(r):
 @listener('generation', generation_handler)
 @listener('stable state', stable_state_handler)
 @listener('force stop', stable_state_handler)
-#@listener('run', generate_stateact_cache)
-class SingleSignallingGame(simulations.dynamics.npop_discrete_replicator.NPopDiscreteReplicatorDynamics):
+class SingleSignallingGame(NPDRD):
 
     def __init__(self, *args, **kwdargs):
         #if 'parameters' not in kwdargs:
