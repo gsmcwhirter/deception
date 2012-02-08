@@ -109,8 +109,11 @@ def start_handler(this):
 
 
 def result_handler(this, result):
-    print "[Result] {0} complete in {1} generations".format(this.finished_count,
+    try:
+        print "[Result] {0} complete in {1} generations".format(this.finished_count,
                                                                 result[0])
+    except TypeError:
+        print "[Result (error)] {0}".format(result)
 
 
 @listener('done', done_handler)
@@ -301,3 +304,10 @@ class SingleSignallingGame(NPDRD):
             )
 
         return self.interaction_cache[profile][index]
+
+if __name__ == '__main__':
+    runner = Runner(SingleSignallingGame,
+                                pp_deps=(SingleSignallingGame,))
+    print "Yaba daba doo..."
+
+    runner.go()
