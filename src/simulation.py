@@ -10,16 +10,6 @@ from simulations.simulation_runner import SimulationRunner
 from simulations.dynamics.npop_discrete_replicator import NPopDiscreteReplicatorDynamics as NPDRD
 
 
-receiver_sim_2 = ((2., 1., 1., 0.),
-                  (1., 2., 0., 1.),
-                  (1., 0., 2., 1.),
-                  (0., 1., 1., 2.))
-
-receiver_dist_2 = ((2., 4. / 3., 2. / 3., 0.),
-                   (4. / 3., 2., 4. / 3., 2. / 3.),
-                   (2. / 3., 4. / 3., 2., 4. / 3.),
-                   (0., 2. / 3., 4. / 3., 2.))
-
 sender_1 = ((2., 0., 0., 0.),
             (0., 2., 0., 0.),
             (0., 0., 2., 0.),
@@ -178,7 +168,7 @@ def format_matrix(matrix, prefix=None):
     return ret
 
 
-def format_population(this, pop):
+def format_population(this, pop, stable=False):
     ret = ""
 
     fstr = "\t\t{0:>5}: {1:>5}: {2}\n"
@@ -187,15 +177,18 @@ def format_population(this, pop):
     for sender, proportion in enumerate(pop[0]):
         if abs(proportion - 0.) > this.effective_zero:
             ret += fstr.format(sender, this.types[0][sender], proportion)
+            if stable:
+                ret += format_matrix(sender_matrix(sender), "\t\t\t")
 
     ret += "\tReceivers:\n"
     for receiver, proportion in enumerate(pop[1]):
         if abs(proportion - 0.) > this.effective_zero:
             ret += fstr.format(receiver, this.types[1][receiver], proportion)
-            if this.data['is_combinatorial']:
-                ret += format_matrix(receiver_matrix(receiver), "\t\t\t")
-            else:
-                ret += format_matrix(sender_matrix(receiver), "\t\t\t")
+            if stable:
+                if this.data['is_combinatorial']:
+                    ret += format_matrix(receiver_matrix(receiver), "\t\t\t")
+                else:
+                    ret += format_matrix(sender_matrix(receiver), "\t\t\t")
 
     return ret
 
@@ -208,7 +201,7 @@ def stable_state_handler(this, genct, thisgen, lastgen, firstgen):
         fstr = "[Stable state] {0} generations"
 
     print >> this.out, fstr.format(genct)
-    print >> this.out, format_population(this, thisgen)
+    print >> this.out, format_population(this, thisgen, stable=True)
 
 
 def initial_set_handler(this, initial_pop):
