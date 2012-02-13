@@ -20,73 +20,87 @@ receiver_dist_2 = ((2., 4. / 3., 2. / 3., 0.),
                    (2. / 3., 4. / 3., 2., 4. / 3.),
                    (0., 2. / 3., 4. / 3., 2.))
 
-sender_sim_2_1 = ((0., 1., 1., 2.),
-                   (1., 2., 0., 1.),
-                   (1., 0., 2., 1.),
-                   (0., 1., 1., 2.))
+sender_1 = ((2., 0., 0., 0.),
+            (0., 2., 0., 0.),
+            (0., 0., 2., 0.),
+            (0., 0., 2., 1.))
 
-sender_sim_2_2 = ((2., 1., 1., 0.),
-                   (2., 1., 0., 1.),
-                   (1., 0., 1., 2.),
-                   (0., 2., 1., 1.))
+sender_2 = ((2., 1., 1., 0.),
+            (1., 2., 0., 1.),
+            (1., 0., 2., 1.),
+            (2., 1., 1., 0.))
 
-sender_dist_2_1 = ((0., 4. / 3., 2. / 3., 2.),
-                   (4. / 3., 2., 4. / 3., 2. / 3.),
-                   (2. / 3., 4. / 3., 2., 4. / 3.),
-                   (0., 2. / 3., 4. / 3., 2.))
+sender_3 = ((2., 4. / 3., 2. / 3., 0.),
+            (4. / 3., 2., 4. / 3., 2. / 3.),
+            (2. / 3., 4. / 3., 2., 4. / 3.),
+            (2., 4. / 3., 2. / 3., 0.))
 
-sender_dist_2_2 = ((2., 4. / 3., 2. / 3., 0.),
-                   (2., 4. / 3., 4. / 3., 2. / 3.),
-                   (2. / 3., 4. / 3., 4. / 3., 2.),
-                   (0., 2., 4. / 3., 2. / 3.))
+receiver_1 = ((2., 0., 0., 0.),
+              (0., 2., 0., 0.),
+              (0., 0., 2., 0.),
+              (0., 0., 2., 3.))
 
-_choices = ["simil0", "simil1", "simil2", "dist0", "dist1", "dist2"]
+receiver_2 = ((2., 1., 1., 0.),
+              (1., 2., 0., 1.),
+              (1., 0., 2., 1.),
+              (0., 1., 1., 2.))
+
+receiver_3 = ((2., 4. / 3., 2. / 3., 0.),
+              (4. / 3., 2., 4. / 3., 2. / 3.),
+              (2. / 3., 4. / 3., 2., 4. / 3.),
+              (0., 2. / 3., 4. / 3., 2.))
+
+_choices = ["nci", "sim", "dist"]
 
 
 def add_options(this):
     this.oparser.add_option("-r", "--routine", action="store",
                                 choices=_choices, dest="routine",
                                 help="name of routine to run")
+    this.oparser.add_option("--combinatorial", action="store_true",
+                                dest="combinatorial", default=False,
+                                help="use a combinatorial model")
+    this.oparser.add_option("--noncombinatorial", action="store_true",
+                                dest="noncombinatorial", default=False,
+                                help="use a non-combinatorial model")
 
 
 def check_options(this):
     if not this.options.routine in _choices:
         this.oparser.error("Unknown routine selected")
 
+    if this.options.combinatorial and this.options.noncombinatorial:
+        this.oparser.error("You must select either --combinatorial or --noncombinatorial, but not both.")
+    elif not this.options.combinatorial and not this.options.noncombinatorial:
+        this.oparser.error("You must select either --combinatorial or --noncombinatorial")
+
 
 def set_data(this):
-    #common interest
-    if this.options.routine == "simil0":
-        this.data['s_payoffs'] = receiver_sim_2
-        this.data['r_payoffs'] = receiver_sim_2
 
-    #sender map 1
-    elif this.options.routine == "simil1":
-        this.data['s_payoffs'] = sender_sim_2_1
-        this.data['r_payoffs'] = receiver_sim_2
+    #near common interest
+    if this.options.routine == "nci":
+        this.data['s_payoffs'] = sender_1
+        this.data['r_payoffs'] = receiver_1
 
-    #sender map 3
-    elif this.options.routine == "simil2":
-        this.data['s_payoffs'] = sender_sim_2_2
-        this.data['r_payoffs'] = receiver_sim_2
+    #similarity
+    elif this.options.routine == "sim":
+        this.data['s_payoffs'] = sender_2
+        this.data['r_payoffs'] = receiver_2
 
-    #common interest
-    elif this.options.routine == "dist0":
-        this.data['s_payoffs'] = receiver_dist_2
-        this.data['r_payoffs'] = receiver_dist_2
-
-    #sender map 1
-    elif this.options.routine == "dist1":
-        this.data['s_payoffs'] = sender_dist_2_1
-        this.data['r_payoffs'] = receiver_dist_2
-
-    #sender map 3
-    elif this.options.routine == "dist2":
-        this.data['s_payoffs'] = sender_dist_2_2
-        this.data['r_payoffs'] = receiver_dist_2
+    #distance
+    elif this.options.routine == "dist":
+        this.data['s_payoffs'] = sender_3
+        this.data['r_payoffs'] = receiver_3
 
     else:
         raise ValueError("Unable to determine requested payoffs")
+
+    if this.options.combinatorial:
+        this._simulation_class = CombinatorialSignallingGame
+        this.data['is_combinatorial'] = True
+    else:
+        this._simulation_class = NonCombinatorialSignallingGame
+        this.data['is_combinatorial'] = False
 
 
 def done_handler(this):
@@ -141,7 +155,27 @@ class Runner(SimulationRunner):
         if 'default_handlers' not in kwdargs:
             kwdargs['default_handlers'] = False
 
+        if len(args) == 0:
+            args = [None]
+
         super(Runner, self).__init__(*args, **kwdargs)
+
+
+def format_matrix(matrix, prefix=None):
+    if prefix is None:
+        prefix = ""
+
+    ret = prefix + "["
+    first = True
+    for row in matrix:
+        if first:
+            ret += "[" + ", ".join(["{0}".format(i) for i in row]) + "]"
+            first = False
+        else:
+            ret += "\n" + prefix + " [" + ", ".join(["{0}".format(i) for i in row]) + "]"
+    ret += "]\n"
+
+    return ret
 
 
 def format_population(this, pop):
@@ -158,6 +192,10 @@ def format_population(this, pop):
     for receiver, proportion in enumerate(pop[1]):
         if abs(proportion - 0.) > this.effective_zero:
             ret += fstr.format(receiver, this.types[1][receiver], proportion)
+            if this.data['is_combinatorial']:
+                ret += format_matrix(receiver_matrix(receiver), "\t\t\t")
+            else:
+                ret += format_matrix(sender_matrix(receiver), "\t\t\t")
 
     return ret
 
@@ -183,13 +221,32 @@ def generation_handler(this, genct, thispop, lastpop):
     print >> this.out, format_population(this, thispop)
 
 
-def generate_stateact_cache(this):
+def generate_stateact_cache_com(this):
 
     sacache = {}
 
     for profile in itertools.product(*this.types):
         sstrat = sender_matrix(profile[0])
         rstrat = receiver_matrix(profile[1])
+
+        sacache[tuple(profile)] = {}
+
+        for state in range(4):
+            msg = sstrat[state].index(1)
+            act = rstrat[msg].index(1)
+
+            sacache[tuple(profile)][state] = act
+
+    this.data['stateact_cache'] = sacache
+
+
+def generate_stateact_cache_noncom(this):
+
+    sacache = {}
+
+    for profile in itertools.product(*this.types):
+        sstrat = sender_matrix(profile[0])
+        rstrat = sender_matrix(profile[1])
 
         sacache[tuple(profile)] = {}
 
@@ -262,7 +319,7 @@ def receiver_matrix(r):
 @listener('generation', generation_handler)
 @listener('stable state', stable_state_handler)
 @listener('force stop', stable_state_handler)
-class SingleSignallingGame(NPDRD):
+class CombinatorialSignallingGame(NPDRD):
 
     def __init__(self, *args, **kwdargs):
         #if 'parameters' not in kwdargs:
@@ -286,12 +343,62 @@ class SingleSignallingGame(NPDRD):
         if 'default_handlers' not in kwdargs:
             kwdargs['default_handlers'] = False
 
-        super(SingleSignallingGame, self).__init__(*args, **kwdargs)
+        super(CombinatorialSignallingGame, self).__init__(*args, **kwdargs)
 
         self.stateact_cache = None
 
         if 'stateact_cache' not in self.data or not self.data['stateact_cache']:
-            generate_stateact_cache(self)
+            generate_stateact_cache_com(self)
+
+        self.stateact_cache = self.data['stateact_cache']
+        self.interaction_cache = {}
+        self.state_probs = tuple([1. / float(n)] * n)
+
+    def _interaction(self, index, profile):
+        if index != 0 and index != 1:
+            raise ValueError("Strategy profile index out of bounds")
+
+        if profile not in self.interaction_cache:
+            self.interaction_cache[profile] = (
+                math.fsum(
+                    self.data['s_payoffs'][state][act] * self.state_probs[state]
+                    for state, act in self.stateact_cache[profile].iteritems()),
+                math.fsum(
+                    self.data['r_payoffs'][state][act] * self.state_probs[state]
+                    for state, act in self.stateact_cache[profile].iteritems())
+            )
+
+        return self.interaction_cache[profile][index]
+
+
+@listener('initial set', initial_set_handler)
+@listener('generation', generation_handler)
+@listener('stable state', stable_state_handler)
+@listener('force stop', stable_state_handler)
+class NonCombinatorialSignallingGame(NPDRD):
+
+    def __init__(self, *args, **kwdargs):
+        #if 'parameters' not in kwdargs:
+        #    parameters = (2, 2)
+        #else:
+        #    parameters = kwdargs['parameters']
+
+        parameters = (2, 2)
+
+        n = reduce(operator.mul, parameters, 1)
+
+        kwdargs['types'] = [range(n ** n),
+                            range(n ** n)]
+
+        if 'default_handlers' not in kwdargs:
+            kwdargs['default_handlers'] = False
+
+        super(NonCombinatorialSignallingGame, self).__init__(*args, **kwdargs)
+
+        self.stateact_cache = None
+
+        if 'stateact_cache' not in self.data or not self.data['stateact_cache']:
+            generate_stateact_cache_noncom(self)
 
         self.stateact_cache = self.data['stateact_cache']
         self.interaction_cache = {}

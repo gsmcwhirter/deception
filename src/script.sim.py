@@ -1,7 +1,7 @@
-from simulation import Runner, SingleSignallingGame
+from simulation import Runner
 
 if __name__ == '__main__':
-    runner = Runner(SingleSignallingGame)
+    runner = Runner()
     print "Yaba daba doo..."
 
     runner.go()

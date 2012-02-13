@@ -5,3 +5,4 @@ lib
 local
 output
 *.pyc
+share
