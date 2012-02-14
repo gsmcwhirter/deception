@@ -386,8 +386,8 @@ def format_stats(data, prefix=None, gphx_file=None):
 
     series = TimeSeries(data)
 
-    ret += "{0}Mean: {1:.4%}\n".format(prefix, series.mean(data))
-    ret += "{0}StdDev: {1:.4%}\n".format(prefix, series.standard_deviation(data))
+    ret += "{0}Mean: {1:.4%}\n".format(prefix, series.mean())
+    ret += "{0}StdDev: {1:.4%}\n".format(prefix, series.standard_deviation())
     ret += "{0}Histogram: {1}\n".format(prefix, series.historgram(bins=10))
 
     if gphx_file is not None:
