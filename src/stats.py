@@ -250,7 +250,7 @@ def output_klstats(this, out, duplications, r_payoffs, s_payoffs):
                                                       information_content)
 
         misinfo_msgs = [msg for msg, information_content in kls.iteritems()
-                            if misinfo(msg, information_content, all_cprobs_state_given_msg)]
+                            if misinfo(msg, information_content)]
 
         if len(misinfo_msgs) > 0:
             times_misinformation += 1
