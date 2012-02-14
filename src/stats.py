@@ -272,14 +272,14 @@ def output_klstats(this, out, duplications, r_payoffs, s_payoffs):
         r_decept = False
         f_decept = False
 
-        for sender, sender_prob in enumerate(final_sender):
+        for (sender, sender_prob) in final_sender:
             s_matrix = simulation.sender_matrix(sender)
             s_hdeceptive = False
             s_fdeceptive = False
             for msg in misinfo_msgs:
                 states_msg_sent = [state for state, row in enumerate(s_matrix) if row[msg] == 1]
 
-                for receiver, receiver_prob in enumerate(final_receiver):
+                for (receiver, receiver_prob) in final_receiver:
                     sri_hdeceptive = False
                     sri_fdeceptive = False
 
