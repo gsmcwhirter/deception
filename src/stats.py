@@ -1,10 +1,9 @@
 import collections
 import itertools
 import math
-import sage.stats.basic_stats as stats
 import simulation
 
-from sage.all import *
+from sage.finance.time_series import TimeSeries
 from simulations.base import listener
 from simulations.statsparser import StatsParser as StatsParserBase
 
@@ -14,8 +13,9 @@ def set_options(this):
 
     Options:
 
-    -n, --nosumm        Do not output summary statistics
-    -q, --quiet         Only output aggregate statistics
+    -n, --nosumm                Do not output summary statistics
+    -q, --quiet                 Only output aggregate statistics
+    -g STRING, --gphx=STRING    The format string for histogram outputs
 
     """
     this._oparser.add_option("-n", "--nosumm", action="store_false",
@@ -24,6 +24,9 @@ def set_options(this):
     this._oparser.add_option("-q", "--quiet", action="store_true",
                                     dest="quiet", default=False,
                                     help="only output aggregate statistics")
+    this._oparser.add_option("-g", "--gphx", action="store", dest="gphx",
+                                    type="string", default=None,
+                                    help="the filename pattern for histogram drawings")
 
 
 def handle_result(this, out, count, result):
@@ -344,30 +347,51 @@ def output_klstats(this, out, duplications, r_payoffs, s_payoffs):
     print >> out, "Number of duplications with receivers losing out: {0}".format(times_receiver_hdeception)
     print >> out, "Number of duplications with deception: {0}".format(times_full_deception)
     print >> out
+
+    if options.gphx is not None:
+        fname_s_hdecept = options.gphx.format("s_hdecept")
+        fname_s_decept = options.gphx.format("s_decept")
+        fname_i_hdecept_pos = options.gphx.format("i_hdecept_pos")
+        fname_i_decept_pos = options.gphx.format("i_decept_pos")
+        fname_i_hdecept = options.gphx.format("i_hdecept")
+        fname_i_decept = options.gphx.format("i_decept")
+    else:
+        fname_s_hdecept = None
+        fname_s_decept = None
+        fname_i_hdecept_pos = None
+        fname_i_decept_pos = None
+        fname_i_hdecept = None
+        fname_i_decept = None
+
     print >> out, "Percent of Senders Benefitting:"
-    print >> out, format_stats(pcts_senders_hdeceptive, "\t")
+    print >> out, format_stats(pcts_senders_hdeceptive, "\t", fname_s_hdecpt)
     print >> out, "Percent of Senders Deceptive:"
-    print >> out, format_stats(pcts_senders_deceptive, "\t")
+    print >> out, format_stats(pcts_senders_deceptive, "\t", fname_s_decept)
     print >> out, "Percent of Interactions with Potential Sender Benefit:"
-    print >> out, format_stats(pcts_interactions_hdeceptive_potential, "\t")
+    print >> out, format_stats(pcts_interactions_hdeceptive_potential, "\t", fname_i_hdecept_pos)
     print >> out, "Percent of Interactions with Potential Deception:"
-    print >> out, format_stats(pcts_interactions_deceptive_potential, "\t")
+    print >> out, format_stats(pcts_interactions_deceptive_potential, "\t", fname_i_decept_pos)
     print >> out, "Percent of Interactions with Sender Benefit:"
-    print >> out, format_stats(pcts_interactions_hdeceptive, "\t")
+    print >> out, format_stats(pcts_interactions_hdeceptive, "\t", fname_i_hdecept)
     print >> out, "Percent of Interactions with Deception:"
-    print >> out, format_stats(pcts_interactions_deceptive, "\t")
+    print >> out, format_stats(pcts_interactions_deceptive, "\t", fname_i_decept)
     print >> out, "=" * 72
 
 
-def format_stats(data, prefix=None):
+def format_stats(data, prefix=None, gphx_file=None):
     ret = ""
 
     if prefix is None:
         prefix = ""
 
-    ret += "{0}Mean: {1:.4%}\n".format(prefix, stats.mean(data))
-    ret += "{0}Median: {1:.4%}\n".format(prefix, stats.mean(data))
-    ret += "{0}StdDev: {1:.4%}\n".format(prefix, stats.std(data))
+    series = TimeSeries(data)
+
+    ret += "{0}Mean: {1:.4%}\n".format(prefix, series.mean(data))
+    ret += "{0}StdDev: {1:.4%}\n".format(prefix, series.standard_deviation(data))
+    ret += "{0}Histogram: {1}\n".format(prefix, series.historgram(bins=10))
+
+    if gphx_file is not None:
+        series.plot_histogram(filename=gphx_file, figsize=6)
 
 
 @listener('oparser ready', set_options)
