@@ -3,8 +3,13 @@ import itertools
 import math
 import simulation
 
-from sage.all_cmdline import *
-from sage.finance.time_series import TimeSeries
+_use_stats = True
+try:
+    from sage.all_cmdline import *
+    from sage.finance.time_series import TimeSeries
+except ImportError:
+    _use_stats = False
+
 from simulations.base import listener
 from simulations.statsparser import StatsParser as StatsParserBase
 
@@ -58,7 +63,7 @@ def handle_options(this, out, options):
     this._result_options = options
 
 
-def when_done(this, out):
+def when_done(this, out, comparative=False):
     """ Actually calculates the statistics
 
     """
@@ -77,11 +82,16 @@ def when_done(this, out):
 
         massaged_dups.append((final_sender, final_receiver, generations))
 
-    print >> out, "Total Duplications: {0}, avg generations: {1:.2%}".format(
+    print >> out, "Total Duplications: {0}, avg generations: {1:.2}".format(
                         len(massaged_dups),
                         float(sum(i[2] for i in massaged_dups)) / float(len(massaged_dups)))
 
-    if this._result_options.routine == "nci":
+    if comparative:
+        s_payoffs = simulation.sender_2
+        r_payoffs = (simulation.receiver_2, simulation.lambda_payoffs(this._result_options.lam))
+        splitat = len(this._duplications[0][1][2][0])
+
+    elif this._result_options.routine == "nci":
         s_payoffs = simulation.sender_1
         r_payoffs = simulation.receiver_1
 
@@ -97,12 +107,22 @@ def when_done(this, out):
         raise ValueError("Unknown routine selected")
 
     if this.options.summary:
-        output_summary(this, out, massaged_dups)
+        output_summary(this, out, massaged_dups, comparative=comparative, splitat=splitat)
 
-    output_klstats(this, out, massaged_dups, r_payoffs, s_payoffs)
+    output_klstats(this, out, massaged_dups, r_payoffs, s_payoffs, comparative=comparative, splitat=splitat)
+
+    return massaged_dups
 
 
-def output_summary(this, out, duplications):
+def when_done_comparative(this, out):
+    """ Actually calculates the statistics
+
+    """
+
+    when_done(this, out, comparative=True)
+
+
+def output_summary(this, out, duplications, comparative=False, splitat=None):
     """ Ouputs summary statistics
 
     """
@@ -146,15 +166,36 @@ def output_summary(this, out, duplications):
     sndstr = "\t{0:>22}\t\t{1:>5}: {2}"
     recstr = "\t{0:>5}: {1:>15}"
 
+    comb_results = 0
+    noncomb_results = 0
+    mixed_results = 0
+
     for e in ks:
+        has_comb = False
+        has_noncomb = False
         print >> out, "-" * 72
-        for rec, snd in itertools.izip_longest(e[0], e[1], fillvalue=False):
+        for rec, snd in itertools.izip_longest(e[0], e[1], fillvalue=None):
             print >> out, "\t",
 
-            if snd and rec:
-                print >> out, bthstr.format(rec[0], rec[1], snd[0], snd[1])
+            if rec and rec[0] < splitat:
+                has_noncomb = True
             elif rec:
-                print >> out, recstr.format(*rec)
+                has_comb = True
+
+            if snd and rec:
+                if comparative and rec[0] < splitat:
+                    print >> out, bthstr.format("NC {0}".format(rec[0]), rec[1], snd[0], snd[1])
+                elif comparative:
+                    print >> out, bthstr.format("C {0}".format(rec[0] - splitat), rec[1], snd[0], snd[1])
+                else:
+                    print >> out, bthstr.format(rec[0], rec[1], snd[0], snd[1])
+            elif rec:
+                if comparative and rec[0] < splitat:
+                    print >> out, recstr.format("NC {0}".format(rec[0]), rec[1])
+                elif comparative:
+                    print >> out, recstr.format("C {0}".format(rec[0] - splitat), rec[1])
+                else:
+                    print >> out, recstr.format(*rec)
             elif snd:
                 print >> out, sndstr.format("", *snd)
 
@@ -162,7 +203,19 @@ def output_summary(this, out, duplications):
                             end_states[e][0],
                             float(sum(end_states[e][1])) / float(len(end_states[e][1])))
 
-    print >>out, "=" * 72
+        if has_comb and has_noncomb:
+            mixed_results += end_states[e][0]
+        elif has_comb:
+            comb_results += end_states[e][0]
+        elif has_noncomb:
+            noncomb_results += end_states[e][0]
+
+    print >> out
+    print >> out, "Combinatorial Results: {0}".format(comb_results)
+    print >> out, "Non-Combinatorial Results: {0}".format(noncomb_results)
+    print >> out, "Mixed Results: {0}".format(mixed_results)
+
+    print >> out, "=" * 72
 
 
 def misinfo(msg, information_content):
@@ -208,7 +261,7 @@ def kl_measures(sender_pop, receiver_pop, n=2):
     return (information_contents, all_cprobs_state_given_msg, all_cprobs_msg_given_state)
 
 
-def output_klstats(this, out, duplications, r_payoffs, s_payoffs):
+def output_klstats(this, out, duplications, r_payoffs, s_payoffs, comparative=False, splitat=None):
 
     options = this.options
 
@@ -285,17 +338,34 @@ def output_klstats(this, out, duplications, r_payoffs, s_payoffs):
                     sri_hdeceptive = False
                     sri_fdeceptive = False
 
-                    if this._result_options.combinatorial:
+                    if comparative and receiver < splitat:
+                        r_matrix = simulation.sender_matrix(receiver)
+                    elif comparative:
+                            r_matrix = simulation.receiver_matrix(receiver - splitat)
+                    elif this._result_options.combinatorial:
                         r_matrix = simulation.receiver_matrix(receiver)
                     else:
                         r_matrix = simulation.sender_matrix(receiver)
                     action = r_matrix[msg].index(1)
 
                     for state in states_msg_sent:
-                        receiver_payoff_actual = r_payoffs[state][action]
-                        receiver_payoff_ifknew = max(r_payoffs[state])
+                        if comparative and receiver < splitat:
+                            receiver_payoff_actual = r_payoffs[0][state][action]
+                            receiver_payoff_ifknew = max(r_payoffs[0][state])
 
-                        actions_ifknew = [act for act, payoff in enumerate(r_payoffs[state])
+                            actions_ifknew = [act for act, payoff in enumerate(r_payoffs[0][state])
+                                                if payoff == receiver_payoff_ifknew]
+                        elif comparative:
+                            receiver_payoff_actual = r_payoffs[1][state][action]
+                            receiver_payoff_ifknew = max(r_payoffs[1][state])
+
+                            actions_ifknew = [act for act, payoff in enumerate(r_payoffs[1][state])
+                                                if payoff == receiver_payoff_ifknew]
+                        else:
+                            receiver_payoff_actual = r_payoffs[state][action]
+                            receiver_payoff_ifknew = max(r_payoffs[state])
+
+                            actions_ifknew = [act for act, payoff in enumerate(r_payoffs[state])
                                                 if payoff == receiver_payoff_ifknew]
 
                         sender_payoff_actual = s_payoffs[state][action]
@@ -385,14 +455,17 @@ def format_stats(data, prefix=None, gphx_file=None):
     if prefix is None:
         prefix = ""
 
-    series = TimeSeries(data)
+    if _use_stats:
+        series = TimeSeries(data)
 
-    ret += "{0}Mean: {1:.4%}\n".format(prefix, series.mean())
-    ret += "{0}StdDev: {1:.4%}\n".format(prefix, series.standard_deviation())
-    ret += "{0}Histogram: {1}\n".format(prefix, series.histogram(bins=10))
+        ret += "{0}Mean: {1:.4%}\n".format(prefix, series.mean())
+        ret += "{0}StdDev: {1:.4%}\n".format(prefix, series.standard_deviation())
+        ret += "{0}Histogram: {1}\n".format(prefix, series.histogram(bins=10))
 
-    if gphx_file is not None:
-        series.plot_histogram(filename=gphx_file, figsize=6)
+        if gphx_file is not None:
+            series.plot_histogram(filename=gphx_file, figsize=6)
+    else:
+        ret = "[Warning] stats software is not available"
 
     return ret
 
@@ -405,4 +478,15 @@ class StatsParser(StatsParserBase):
 
     def __init__(self, *args, **kwdargs):
         super(StatsParser, self).__init__(*args, **kwdargs)
+        self._effective_zero = 1e-10
+
+
+@listener('oparser set up', set_options)
+@listener('result', handle_result)
+@listener('result options', handle_options)
+@listener('done', when_done_comparative)
+class ComparativeStatsParser(StatsParserBase):
+
+    def __init__(self, *args, **kwdargs):
+        super(ComparativeStatsParser, self).__init__(*args, **kwdargs)
         self._effective_zero = 1e-10
