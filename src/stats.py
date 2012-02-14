@@ -245,7 +245,8 @@ def output_klstats(this, out, duplications, r_payoffs, s_payoffs):
                 print >> out, "\t{0:>5}: {1:>15}: {2}".format(msg,
                                                       math.fsum(state_content * all_cprobs_state_given_msg[msg][state]
                                                         for state, state_content in enumerate(information_content)
-                                                        if not math.isinf(state_content)
+                                                        if not math.isinf(state_content) and\
+                                                            not math.isinf(all_cprobs_state_given_msg[msg][state])
                                                       ),
                                                       information_content)
 
