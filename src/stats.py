@@ -401,3 +401,4 @@ class StatsParser(StatsParserBase):
 
     def __init__(self, *args, **kwdargs):
         super(StatsParser, self).__init__(*args, **kwdargs)
+        self._effective_zero = 1e-10
