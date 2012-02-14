@@ -4,6 +4,7 @@ import math
 import sage.stats.basic_stats as stats
 import simulation
 
+from sage.all import *
 from simulations.base import listener
 from simulations.statsparser import StatsParser as StatsParserBase
 
