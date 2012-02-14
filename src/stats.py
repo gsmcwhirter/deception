@@ -393,7 +393,7 @@ def format_stats(data, prefix=None, gphx_file=None):
         series.plot_histogram(filename=gphx_file, figsize=6)
 
 
-@listener('oparser ready', set_options)
+@listener('oparser set up', set_options)
 @listener('result', handle_result)
 @listener('result options', handle_options)
 @listener('done', when_done)
