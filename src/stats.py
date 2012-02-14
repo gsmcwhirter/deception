@@ -18,13 +18,13 @@ def set_options(this):
     -g STRING, --gphx=STRING    The format string for histogram outputs
 
     """
-    this._oparser.add_option("-n", "--nosumm", action="store_false",
+    this.oparser.add_option("-n", "--nosumm", action="store_false",
                                     dest="summary", default=True,
                                     help="do not output summary statistics")
-    this._oparser.add_option("-q", "--quiet", action="store_true",
+    this.oparser.add_option("-q", "--quiet", action="store_true",
                                     dest="quiet", default=False,
                                     help="only output aggregate statistics")
-    this._oparser.add_option("-g", "--gphx", action="store", dest="gphx",
+    this.oparser.add_option("-g", "--gphx", action="store", dest="gphx",
                                     type="string", default=None,
                                     help="the filename pattern for histogram drawings")
 
@@ -207,7 +207,6 @@ def kl_measures(sender_pop, receiver_pop, n=2):
     return (information_contents, all_cprobs_state_given_msg, all_cprobs_msg_given_state)
 
 
-## TODO: account for non-combinatorial
 def output_klstats(this, out, duplications, r_payoffs, s_payoffs):
 
     options = this.options
@@ -364,7 +363,7 @@ def output_klstats(this, out, duplications, r_payoffs, s_payoffs):
         fname_i_decept = None
 
     print >> out, "Percent of Senders Benefitting:"
-    print >> out, format_stats(pcts_senders_hdeceptive, "\t", fname_s_hdecpt)
+    print >> out, format_stats(pcts_senders_hdeceptive, "\t", fname_s_hdecept)
     print >> out, "Percent of Senders Deceptive:"
     print >> out, format_stats(pcts_senders_deceptive, "\t", fname_s_decept)
     print >> out, "Percent of Interactions with Potential Sender Benefit:"
