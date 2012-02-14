@@ -3,6 +3,7 @@ import itertools
 import math
 import simulation
 
+from sage.all_cmdline import *
 from sage.finance.time_series import TimeSeries
 from simulations.base import listener
 from simulations.statsparser import StatsParser as StatsParserBase
