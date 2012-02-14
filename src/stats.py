@@ -394,6 +394,8 @@ def format_stats(data, prefix=None, gphx_file=None):
     if gphx_file is not None:
         series.plot_histogram(filename=gphx_file, figsize=6)
 
+    return ret
+
 
 @listener('oparser set up', set_options)
 @listener('result', handle_result)
