@@ -43,6 +43,14 @@ receiver_3 = ((2., 4. / 3., 2. / 3., 0.),
 _choices = ["nci", "sim", "dist"]
 
 
+def lambda_payoffs(lam):
+    lam = float(lam)
+    return ((2. / (1. + lam), 1. / (1. + lam), 1. / (1. + lam), 0.),
+            (1. / (1. + lam), 2. / (1. + lam), 0., 1. / (1. + lam)),
+            (1. / (1. + lam), 0., 2. / (1. + lam), 1. / (1. + lam)),
+            (0., 1. / (1. + lam), 1. / (1. + lam), 2. / (1. + lam)))
+
+
 def add_options(this):
     this.oparser.add_option("-r", "--routine", action="store",
                                 choices=_choices, dest="routine",
@@ -55,6 +63,12 @@ def add_options(this):
                                 help="use a non-combinatorial model")
 
 
+def add_comparative_options(this):
+    this.oparser.add_option("-l", "--lambda", action="store",
+                                type="float", dest="lam",
+                                help="value of the lambda parameter")
+
+
 def check_options(this):
     if not this.options.routine in _choices:
         this.oparser.error("Unknown routine selected")
@@ -63,6 +77,11 @@ def check_options(this):
         this.oparser.error("You must select either --combinatorial or --noncombinatorial, but not both.")
     elif not this.options.combinatorial and not this.options.noncombinatorial:
         this.oparser.error("You must select either --combinatorial or --noncombinatorial")
+
+
+def check_comparative_options(this):
+    if this.options.lam < 0.:
+        this.oparser.error("The lambda parameter must be positive.")
 
 
 def set_data(this):
@@ -91,6 +110,12 @@ def set_data(this):
     else:
         this._simulation_class = NonCombinatorialSignallingGame
         this.data['is_combinatorial'] = False
+
+
+def set_comparative_data(this):
+    this.data['s_payoffs'] = sender_2
+    this.data['r_payoffs_c'] = receiver_2
+    this.data['r_payoffs_nc'] = lambda_payoffs(this.options.lam)
 
 
 def done_handler(this):
@@ -151,6 +176,28 @@ class Runner(SimulationRunner):
         super(Runner, self).__init__(*args, **kwdargs)
 
 
+@listener('done', done_handler)
+@listener('go', go_handler)
+@listener('made output_dir', output_dir_handler)
+@listener('pool started', pool_started_handler)
+@listener('start', start_handler)
+@listener('result', result_handler)
+@listener('oparser set up', add_comparative_options)
+@listener('options parsed', set_comparative_data)
+@listener('options parsed', check_comparative_options)
+class ComparativeRunner(SimulationRunner):
+
+    def __init__(self, *args, **kwdargs):
+
+        if 'default_handlers' not in kwdargs:
+            kwdargs['default_handlers'] = False
+
+        if len(args) == 0:
+            args = [ComparativeSignallingGame]
+
+        super(ComparativeRunner, self).__init__(*args, **kwdargs)
+
+
 def format_matrix(matrix, prefix=None):
     if prefix is None:
         prefix = ""
@@ -168,7 +215,7 @@ def format_matrix(matrix, prefix=None):
     return ret
 
 
-def format_population(this, pop, stable=False):
+def format_population(this, pop, stable=False, comparative=False):
     ret = ""
 
     fstr = "\t\t{0:>5}: {1:>5}: {2}\n"
@@ -183,9 +230,20 @@ def format_population(this, pop, stable=False):
     ret += "\tReceivers:\n"
     for receiver, proportion in enumerate(pop[1]):
         if abs(proportion - 0.) > this.effective_zero:
-            ret += fstr.format(receiver, this.types[1][receiver], proportion)
+            if comparative and receiver >= len(this.types[0]):
+                ret += fstr.format("C {0}".format(receiver - len(this.types[0])), this.types[1][receiver], proportion)
+            elif comparative:
+                ret += fstr.format("NC {0}".format(receiver), this.types[1][receiver], proportion)
+            else:
+                ret += fstr.format(receiver, this.types[1][receiver], proportion)
+
             if stable:
-                if this.data['is_combinatorial']:
+                if comparative:
+                    if receiver < len(this.types[0]):
+                        ret += format_matrix(sender_matrix(receiver), "\t\t\t")
+                    else:
+                        ret += format_matrix(receiver_matrix(receiver - len(this.types[0])), "\t\t\t")
+                elif this.data['is_combinatorial']:
                     ret += format_matrix(receiver_matrix(receiver), "\t\t\t")
                 else:
                     ret += format_matrix(sender_matrix(receiver), "\t\t\t")
@@ -193,7 +251,7 @@ def format_population(this, pop, stable=False):
     return ret
 
 
-def stable_state_handler(this, genct, thisgen, lastgen, firstgen):
+def stable_state_handler(this, genct, thisgen, lastgen, firstgen, comparative=False):
 
     if this.force_stop:
         fstr = "[Force stop] {0} generations"
@@ -201,7 +259,11 @@ def stable_state_handler(this, genct, thisgen, lastgen, firstgen):
         fstr = "[Stable state] {0} generations"
 
     print >> this.out, fstr.format(genct)
-    print >> this.out, format_population(this, thisgen, stable=True)
+    print >> this.out, format_population(this, thisgen, stable=True, comparative=comparative)
+
+
+def stable_state_handler_comparative(*args, **kwdargs):
+    stable_state_handler(*args, comparative=True, **kwdargs)
 
 
 def initial_set_handler(this, initial_pop):
@@ -240,6 +302,29 @@ def generate_stateact_cache_noncom(this):
     for profile in itertools.product(*this.types):
         sstrat = sender_matrix(profile[0])
         rstrat = sender_matrix(profile[1])
+
+        sacache[tuple(profile)] = {}
+
+        for state in range(4):
+            msg = sstrat[state].index(1)
+            act = rstrat[msg].index(1)
+
+            sacache[tuple(profile)][state] = act
+
+    this.data['stateact_cache'] = sacache
+
+
+def generate_stateact_cache_comparative(this):
+
+    sacache = {}
+
+    for profile in itertools.product(*this.types):
+        sstrat = sender_matrix(profile[0])
+
+        if profile[1] < len(this.types[0]):
+            rstrat = sender_matrix(profile[1])
+        else:
+            rstrat = receiver_matrix(profile[1] - len(this.types[0]))
 
         sacache[tuple(profile)] = {}
 
@@ -325,13 +410,7 @@ class CombinatorialSignallingGame(NPDRD):
         n = reduce(operator.mul, parameters, 1)
 
         kwdargs['types'] = [range(n ** n),
-                            range(
-                                reduce(
-                                    operator.mul,
-                                    [p ** p for p in parameters],
-                                    1
-                                )
-                            )]
+                            range(reduce(operator.mul, [p ** p for p in parameters], 1))]
 
         if 'default_handlers' not in kwdargs:
             kwdargs['default_handlers'] = False
@@ -408,6 +487,61 @@ class NonCombinatorialSignallingGame(NPDRD):
                     for state, act in self.stateact_cache[profile].iteritems()),
                 math.fsum(
                     self.data['r_payoffs'][state][act] * self.state_probs[state]
+                    for state, act in self.stateact_cache[profile].iteritems())
+            )
+
+        return self.interaction_cache[profile][index]
+
+
+@listener('initial set', initial_set_handler)
+@listener('generation', generation_handler)
+@listener('stable state', stable_state_handler_comparative)
+@listener('force stop', stable_state_handler_comparative)
+class ComparativeSignallingGame(NPDRD):
+
+    def __init__(self, *args, **kwdargs):
+        #if 'parameters' not in kwdargs:
+        #    parameters = (2, 2)
+        #else:
+        #    parameters = kwdargs['parameters']
+
+        parameters = (2, 2)
+
+        n = reduce(operator.mul, parameters, 1)
+
+        kwdargs['types'] = [range(n ** n),
+                            range(n ** n + reduce(operator.mul, [p ** p for p in parameters], 1))]
+
+        if 'default_handlers' not in kwdargs:
+            kwdargs['default_handlers'] = False
+
+        super(ComparativeSignallingGame, self).__init__(*args, **kwdargs)
+
+        self.stateact_cache = None
+
+        if 'stateact_cache' not in self.data or not self.data['stateact_cache']:
+            generate_stateact_cache_comparative(self)
+
+        self.stateact_cache = self.data['stateact_cache']
+        self.interaction_cache = {}
+        self.state_probs = tuple([1. / float(n)] * n)
+
+    def _interaction(self, index, profile):
+        if index != 0 and index != 1:
+            raise ValueError("Strategy profile index out of bounds")
+
+        if profile not in self.interaction_cache:
+            if profile[1] < len(self.types[0]):
+                r_payoffs = self.data['r_payoffs_nc']
+            else:
+                r_payoffs = self.data['r_payoffs_c']
+
+            self.interaction_cache[profile] = (
+                math.fsum(
+                    self.data['s_payoffs'][state][act] * self.state_probs[state]
+                    for state, act in self.stateact_cache[profile].iteritems()),
+                math.fsum(
+                    r_payoffs[state][act] * self.state_probs[state]
                     for state, act in self.stateact_cache[profile].iteritems())
             )
 
