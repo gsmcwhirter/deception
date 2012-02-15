@@ -212,10 +212,11 @@ def output_summary(this, out, duplications, comparative=False, splitat=None):
         elif has_noncomb:
             noncomb_results += end_states[e][0]
 
-    print >> out
-    print >> out, "Combinatorial Results: {0}".format(comb_results)
-    print >> out, "Non-Combinatorial Results: {0}".format(noncomb_results)
-    print >> out, "Mixed Results: {0}".format(mixed_results)
+    if comparative:
+        print >> out
+        print >> out, "Combinatorial Results: {0}".format(comb_results)
+        print >> out, "Non-Combinatorial Results: {0}".format(noncomb_results)
+        print >> out, "Mixed Results: {0}".format(mixed_results)
 
     print >> out, "=" * 72
 
