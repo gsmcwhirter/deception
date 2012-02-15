@@ -1,0 +1,8 @@
+*.nja
+bin
+include
+lib
+local
+output
+*.pyc
+share
