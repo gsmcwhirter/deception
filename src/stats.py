@@ -86,6 +86,8 @@ def when_done(this, out, comparative=False):
                         len(massaged_dups),
                         float(sum(i[2] for i in massaged_dups)) / float(len(massaged_dups)))
 
+    splitat = None
+
     if comparative:
         s_payoffs = simulation.sender_2
         r_payoffs = (simulation.receiver_2, simulation.lambda_payoffs(this._result_options.lam))
