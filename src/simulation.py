@@ -426,10 +426,7 @@ class CombinatorialSignallingGame(NPDRD):
         self.interaction_cache = {}
         self.state_probs = tuple([1. / float(n)] * n)
 
-    def _interaction(self, index, profile):
-        if index != 0 and index != 1:
-            raise ValueError("Strategy profile index out of bounds")
-
+    def _profile_payoffs(self, profile):
         if profile not in self.interaction_cache:
             self.interaction_cache[profile] = (
                 math.fsum(
@@ -440,7 +437,7 @@ class CombinatorialSignallingGame(NPDRD):
                     for state, act in self.stateact_cache[profile].iteritems())
             )
 
-        return self.interaction_cache[profile][index]
+        return self.interaction_cache[profile]
 
 
 @listener('initial set', initial_set_handler)
@@ -476,10 +473,7 @@ class NonCombinatorialSignallingGame(NPDRD):
         self.interaction_cache = {}
         self.state_probs = tuple([1. / float(n)] * n)
 
-    def _interaction(self, index, profile):
-        if index != 0 and index != 1:
-            raise ValueError("Strategy profile index out of bounds")
-
+    def _profile_payoffs(self, profile):
         if profile not in self.interaction_cache:
             self.interaction_cache[profile] = (
                 math.fsum(
@@ -490,7 +484,7 @@ class NonCombinatorialSignallingGame(NPDRD):
                     for state, act in self.stateact_cache[profile].iteritems())
             )
 
-        return self.interaction_cache[profile][index]
+        return self.interaction_cache[profile]
 
 
 @listener('initial set', initial_set_handler)
@@ -526,10 +520,7 @@ class ComparativeSignallingGame(NPDRD):
         self.interaction_cache = {}
         self.state_probs = tuple([1. / float(n)] * n)
 
-    def _interaction(self, index, profile):
-        if index != 0 and index != 1:
-            raise ValueError("Strategy profile index out of bounds")
-
+    def _profile_payoffs(self, profile):
         if profile not in self.interaction_cache:
             if profile[1] < len(self.types[0]):
                 r_payoffs = self.data['r_payoffs_nc']
@@ -545,4 +536,4 @@ class ComparativeSignallingGame(NPDRD):
                     for state, act in self.stateact_cache[profile].iteritems())
             )
 
-        return self.interaction_cache[profile][index]
+        return self.interaction_cache[profile]
