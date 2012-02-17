@@ -427,6 +427,11 @@ class CombinatorialSignallingGame(NPDRD):
         self.state_probs = tuple([1. / float(n)] * n)
 
     def _profile_payoffs(self, profile):
+        try:
+            profile = tuple(profile.tolist())
+        except AttributeError:
+            profile = tuple(profile)
+
         if profile not in self.interaction_cache:
             self.interaction_cache[profile] = (
                 math.fsum(
@@ -474,6 +479,11 @@ class NonCombinatorialSignallingGame(NPDRD):
         self.state_probs = tuple([1. / float(n)] * n)
 
     def _profile_payoffs(self, profile):
+        try:
+            profile = tuple(profile.tolist())
+        except AttributeError:
+            profile = tuple(profile)
+
         if profile not in self.interaction_cache:
             self.interaction_cache[profile] = (
                 math.fsum(
@@ -521,6 +531,11 @@ class ComparativeSignallingGame(NPDRD):
         self.state_probs = tuple([1. / float(n)] * n)
 
     def _profile_payoffs(self, profile):
+        try:
+            profile = tuple(profile.tolist())
+        except AttributeError:
+            profile = tuple(profile)
+
         if profile not in self.interaction_cache:
             if profile[1] < len(self.types[0]):
                 r_payoffs = self.data['r_payoffs_nc']
