@@ -221,6 +221,15 @@ def output_summary(this, out, duplications, comparative=False, splitat=None):
     print >> out, "=" * 72
 
 
+def is_separating(sender_matrix):
+    msgs_used = [0] * len(sender_matrix[0])
+    for row in sender_matrix:
+        index = row.index(1)
+        msgs_used[index] += 1
+
+    return not any(msg_uses > 1 for msg_uses in msgs_used)
+
+
 def misinfo(msg, information_content):
     return any(any(info_content2 > 0.
                     for state2, info_content2 in enumerate(information_content)
@@ -397,7 +406,7 @@ def output_klstats(this, out, duplications, r_payoffs, s_payoffs, comparative=Fa
                         else:
                             receiver_detriment = False
 
-                        if sender_benefit and receiver_detriment:
+                        if sender_benefit and receiver_detriment and not is_separating(s_matrix):
                             percent_interactions_deceptive += sender_prob * receiver_prob * state_probs[state]
                             if not f_decept:
                                 times_full_deception += 1
@@ -466,7 +475,8 @@ def format_stats(data, prefix=None, gphx_file=None):
         ret += "{0}Histogram: {1}\n".format(prefix, series.histogram(bins=10))
 
         if gphx_file is not None:
-            series.plot_histogram(filename=gphx_file, figsize=6)
+            plot = series.plot_histogram(figsize=6)
+            plot.save(filename=gphx_file)
     else:
         ret = "[Warning] stats software is not available"
 
