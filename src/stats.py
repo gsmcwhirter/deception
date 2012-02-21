@@ -491,7 +491,7 @@ class StatsParser(StatsParserBase):
 
     def __init__(self, *args, **kwdargs):
         super(StatsParser, self).__init__(*args, **kwdargs)
-        self._effective_zero = 1e-10
+        self._effective_zero = 1e-8  # simulations had 1e-10
 
 
 @listener('oparser set up', set_options)
@@ -502,4 +502,4 @@ class ComparativeStatsParser(StatsParserBase):
 
     def __init__(self, *args, **kwdargs):
         super(ComparativeStatsParser, self).__init__(*args, **kwdargs)
-        self._effective_zero = 1e-10
+        self._effective_zero = 1e-8  # simulations had 1e-10
