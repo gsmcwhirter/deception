@@ -558,7 +558,7 @@ def output_mystats(this, out, duplications, r_payoffs, s_payoffs, comparative=Fa
     for dup_i, (final_sender, final_receiver, generations) in enumerate(duplications):
         #misinfo_msgs = []
 
-        (kls, all_cprobs_state_given_msg, all_cprobs_msg_given_state) = my_measures(final_sender, final_receiver, n)
+        (kls, all_cprobs_state_given_msg, all_cprobs_msg_given_state) = my_measures(this, final_sender, final_receiver, n)
 
         if not options.quiet:
             print >> out, "Conditional Probabilities (msg: [pr(msg | state) for state in states]):"
