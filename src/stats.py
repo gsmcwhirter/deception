@@ -522,10 +522,13 @@ def my_measures(this, sender_pop, receiver_pop, n=2):
                 if sender_pop > this._effective_zero: 
                     if prob_state_given_msg > 0. and not math.isinf(prob_state_given_msg):
                         s_matrix = simulation.sender_matrix(sender)
-                        sender_prob_state_given_msg = ((state_probs[j] * float(s_matrix[j][i])) /
-                                                        math.fsum(state_probs[k] * float(s_matrix[k][i]) 
-                                                                    for k in xrange(len(states))))
-                        information_contents[sender][i].append(math.log(sender_prob_state_given_msg / prob_state_given_msg))
+                        fsm = math.fsum(state_probs[k] * float(s_matrix[k][i]) 
+                                            for k in xrange(len(states)))
+                        if fsm > 0.:
+                            sender_prob_state_given_msg = ((state_probs[j] * float(s_matrix[j][i])) / fsm)
+                            information_contents[sender][i].append(math.log(sender_prob_state_given_msg / prob_state_given_msg))
+                        else:
+                            information_contents[sender][i].append(0.)
                     elif prob_state_given_msg > 0.:
                         information_contents[sender][i].append(- float('inf'))
                     else:
