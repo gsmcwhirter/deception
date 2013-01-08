@@ -322,7 +322,7 @@ def output_klstats(this, out, duplications, r_payoffs, s_payoffs, comparative=Fa
 
     for dup_i, (final_sender, final_receiver, generations) in enumerate(duplications):
         misinfo_msgs = []
-e 
+ 
         (kls, all_cprobs_state_given_msg, all_cprobs_msg_given_state) = kl_measures(final_sender, final_receiver, n)
 
         if not options.quiet:
@@ -335,12 +335,12 @@ e
             print >> out, "KL Information Measures (msg: I(msg): [I(msg, state) for state in states]):"
             for msg, information_content in kls.iteritems():
                 print >> out, "\t{0:>5}: {1:>15}: {2}".format(msg,
-                                                      math.fsum(state_content * all_cprobs_state_given_msg[msg][state]
+                                                    math.fsum(state_content * all_cprobs_state_given_msg[msg][state]
                                                         for state, state_content in enumerate(information_content)
                                                         if not math.isinf(state_content) and\
                                                             not math.isinf(all_cprobs_state_given_msg[msg][state])
-                                                      ),
-                                                      information_content)
+                                                    ),
+                                                    information_content)
 
         misinfo_msgs = [msg for msg, information_content in kls.iteritems()
                             if misinfo(msg, information_content)]
@@ -572,12 +572,12 @@ def output_mystats(this, out, duplications, r_payoffs, s_payoffs, comparative=Fa
                 print >> out, "\t{0:>5}:".format(sender)
                 for msg, information_content in information_contents.iteritems():
                     print >> out, "\t\t{0:>5}: {1:>15}: {2}".format(msg,
-                                                          math.fsum(state_content * all_cprobs_state_given_msg[msg][state]
+                                                        math.fsum(state_content * all_cprobs_state_given_msg[msg][state]
                                                             for state, state_content in enumerate(information_content)
                                                             if not math.isinf(state_content) and\
                                                                 not math.isinf(all_cprobs_state_given_msg[msg][state])
-                                                          ),
-                                                          information_content)
+                                                        ),
+                                                        information_content)
 
         messages_misused = []
         for sender, information_contents in kls.iteritems():
